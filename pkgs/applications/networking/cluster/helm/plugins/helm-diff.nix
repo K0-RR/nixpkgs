@@ -1,17 +1,27 @@
-{ buildGoModule, fetchFromGitHub, lib }:
+{
+  buildGoModule,
+  fetchFromGitHub,
+  lib,
+}:
 
 buildGoModule rec {
   pname = "helm-diff";
-  version = "3.1.3";
+  version = "3.9.14";
 
   src = fetchFromGitHub {
     owner = "databus23";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-h26EOjKNrlcrs2DAYj0NmDRgNRKozjfw5DtxUgHNTa4=";
+    hash = "sha256-9YXsbxcth6v+4OW2nJjRK47dR4b8fn5izvjLfGeS5qI=";
   };
 
-  vendorSha256 = "sha256-+n/QBuZqtdgUkaBG7iqSuBfljn+AdEzDoIo5SI8ErQA=";
+  vendorHash = "sha256-pn5ipX2kXuR2tHO2LE5m34xJLpB7R6jLYW+KALSPgxo=";
+
+  ldflags = [
+    "-s"
+    "-w"
+    "-X github.com/databus23/helm-diff/v3/cmd.Version=${version}"
+  ];
 
   # NOTE: Remove the install and upgrade hooks.
   postPatch = ''
@@ -26,8 +36,8 @@ buildGoModule rec {
   '';
 
   meta = with lib; {
-    description = "A Helm plugin that shows a diff";
-    inherit (src.meta) homepage;
+    description = "Helm plugin that shows a diff";
+    homepage = "https://github.com/databus23/helm-diff";
     license = licenses.asl20;
     maintainers = with maintainers; [ yurrriq ];
   };

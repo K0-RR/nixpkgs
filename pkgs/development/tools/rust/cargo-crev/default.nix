@@ -5,6 +5,7 @@
 , pkg-config
 , SystemConfiguration
 , Security
+, CoreFoundation
 , curl
 , libiconv
 , openssl
@@ -13,16 +14,16 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "cargo-crev";
-  version = "0.21.3";
+  version = "0.26.3";
 
   src = fetchFromGitHub {
     owner = "crev-dev";
     repo = "cargo-crev";
     rev = "v${version}";
-    sha256 = "sha256-CwECZz+qS5+rgwudRutcKZsYxfMLcVbA/9SZASmF+k4=";
+    sha256 = "sha256-OxE0+KK2qt06gAi7rw3hiG2lczBqbyNThb4aCpyM6q8=";
   };
 
-  cargoSha256 = "sha256-7c6Hu6UacQuRsCHlGKr1TtN+XHVGr1sw+HEGWeT9SJA=";
+  cargoHash = "sha256-RtN3+TWRNsOgVb4KrCEN0cxB8ctBZ5qNUXbux3RKkqc=";
 
   preCheck = ''
     export HOME=$(mktemp -d)
@@ -32,14 +33,15 @@ rustPlatform.buildRustPackage rec {
 
   nativeBuildInputs = [ perl pkg-config ];
 
-  buildInputs = [ openssl ] ++ lib.optionals stdenv.isDarwin [ SystemConfiguration Security libiconv curl ];
+  buildInputs = [ openssl ] ++ lib.optionals stdenv.hostPlatform.isDarwin [ SystemConfiguration Security CoreFoundation libiconv curl ];
 
-  checkInputs = [ git ];
+  nativeCheckInputs = [ git ];
 
   meta = with lib; {
-    description = "A cryptographically verifiable code review system for the cargo (Rust) package manager";
+    description = "Cryptographically verifiable code review system for the cargo (Rust) package manager";
+    mainProgram = "cargo-crev";
     homepage = "https://github.com/crev-dev/cargo-crev";
     license = with licenses; [ asl20 mit mpl20 ];
-    maintainers = with maintainers; [ b4dm4n ];
+    maintainers = with maintainers; [ b4dm4n matthiasbeyer ];
   };
 }

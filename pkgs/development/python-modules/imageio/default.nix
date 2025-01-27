@@ -1,70 +1,102 @@
-{ lib
-, buildPythonPackage
-, isPy27
-, fetchPypi
-, fetchpatch
-, imageio-ffmpeg
-, numpy
-, pillow
-, psutil
-, pytestCheckHook
-, tifffile
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  isPyPy,
+  substituteAll,
+
+  # build-system
+  setuptools,
+
+  # native dependencies
+  libGL,
+
+  # dependencies
+  numpy,
+  pillow,
+
+  # optional-dependencies
+  astropy,
+  av,
+  imageio-ffmpeg,
+  pillow-heif,
+  psutil,
+  tifffile,
+
+  # tests
+  pytestCheckHook,
+  fsspec,
 }:
 
 buildPythonPackage rec {
   pname = "imageio";
-  version = "2.13.5";
-  disabled = isPy27;
+  version = "2.37.0";
+  pyproject = true;
 
-  src = fetchPypi {
-    sha256 = "0gc41aiz2i0napk1y00v9bgb4m7dd21sz3lghfm6w6s0ivjjpv67";
-    inherit pname version;
+  src = fetchFromGitHub {
+    owner = "imageio";
+    repo = "imageio";
+    tag = "v${version}";
+    hash = "sha256-/nxJxZrTYX7F2grafIWwx9SyfR47ZXyaUwPHMEOdKkI=";
   };
 
-  patches = [
-    # already present in master, remove on next bump
-    (fetchpatch {
-      name = "pillow-9-gif-rgba.patch";
-      url = "https://github.com/imageio/imageio/commit/836b7a9b077a96de8adab5b67ea53b1292048275.patch";
-      sha256 = "0rlyppa4w16n6qn5hr4wrg8xiy7ifs8c5dhmq8a9yncypx87glpv";
+  patches = lib.optionals (!stdenv.hostPlatform.isDarwin) [
+    (substituteAll {
+      src = ./libgl-path.patch;
+      libgl = "${libGL.out}/lib/libGL${stdenv.hostPlatform.extensions.sharedLibrary}";
     })
   ];
 
-  propagatedBuildInputs = [
-    imageio-ffmpeg
+  build-system = [ setuptools ];
+
+  dependencies = [
     numpy
     pillow
   ];
 
-  checkInputs = [
-    psutil
-    pytestCheckHook
-    tifffile
-  ];
+  optional-dependencies = {
+    bsdf = [ ];
+    dicom = [ ];
+    feisem = [ ];
+    ffmpeg = [
+      imageio-ffmpeg
+      psutil
+    ];
+    fits = lib.optionals (!isPyPy) [ astropy ];
+    freeimage = [ ];
+    lytro = [ ];
+    numpy = [ ];
+    pillow = [ ];
+    simpleitk = [ ];
+    spe = [ ];
+    swf = [ ];
+    tifffile = [ tifffile ];
+    pyav = [ av ];
+    heif = [ pillow-heif ];
+  };
+
+  nativeCheckInputs =
+    [
+      fsspec
+      psutil
+      pytestCheckHook
+    ]
+    ++ fsspec.optional-dependencies.github
+    ++ lib.flatten (builtins.attrValues optional-dependencies);
+
+  pytestFlagsArray = [ "-m 'not needs_internet'" ];
 
   preCheck = ''
-    export IMAGEIO_USERDIR="$TMP"
-    export IMAGEIO_NO_INTERNET="true"
-    export HOME="$(mktemp -d)"
+    export IMAGEIO_USERDIR=$(mktemp -d)
+    export HOME=$(mktemp -d)
   '';
 
-  disabledTests = [
-    # tries to pull remote resources, even with IMAGEIO_NO_INTERNET
-    "test_png_remote"
-    # needs git history
-    "test_mvolread_out_of_bytes"
-    "test_imiter"
-    "test_memory_size"
-    "test_legacy_write_empty"
-  ];
-
-  disabledTestPaths = [
-    "tests/test_pillow.py"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Library for reading and writing a wide range of image, video, scientific, and volumetric data formats";
-    homepage = "http://imageio.github.io/";
-    license = licenses.bsd2;
+    homepage = "https://imageio.readthedocs.io";
+    changelog = "https://github.com/imageio/imageio/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ Luflosi ];
   };
 }

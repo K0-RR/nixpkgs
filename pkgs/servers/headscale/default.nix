@@ -1,21 +1,37 @@
-{ lib, buildGoModule, fetchFromGitHub, installShellFiles }:
-
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+  installShellFiles,
+  nixosTests,
+  postgresql,
+}:
 buildGoModule rec {
   pname = "headscale";
-  version = "0.12.3";
+  version = "0.24.1";
 
   src = fetchFromGitHub {
     owner = "juanfont";
     repo = "headscale";
     rev = "v${version}";
-    sha256 = "sha256-0SIQninNnJZ6KN5RKIMJzJQZRV7ThfJZal1lhsBnTIY=";
+    hash = "sha256-s6s+0RHgAPxmSidfAoAne1d7DRwbC3d9udki3TlPmlY=";
   };
 
-  vendorSha256 = "sha256-n5E6pzswenMJrThCys0UM2LVXKDXqCXDW7uR0V4H56w=";
+  vendorHash = "sha256-SBfeixT8DQOrK2SWmHHSOBtzRdSZs+pwomHpw6Jd+qc=";
 
-  ldflags = [ "-s" "-w" "-X github.com/juanfont/headscale/cmd/headscale/cli.Version=v${version}" ];
+  subPackages = [ "cmd/headscale" ];
+
+  ldflags = [
+    "-s"
+    "-w"
+    "-X github.com/juanfont/headscale/cmd/headscale/cli.Version=v${version}"
+  ];
 
   nativeBuildInputs = [ installShellFiles ];
+
+  nativeCheckInputs = [ postgresql ];
+
+  checkFlags = ["-short"];
 
   postInstall = ''
     installShellCompletion --cmd headscale \
@@ -24,9 +40,11 @@ buildGoModule rec {
       --zsh <($out/bin/headscale completion zsh)
   '';
 
+  passthru.tests = { inherit (nixosTests) headscale; };
+
   meta = with lib; {
     homepage = "https://github.com/juanfont/headscale";
-    description = "An open source, self-hosted implementation of the Tailscale control server";
+    description = "Open source, self-hosted implementation of the Tailscale control server";
     longDescription = ''
       Tailscale is a modern VPN built on top of Wireguard. It works like an
       overlay network between the computers of your networks - using all kinds
@@ -44,6 +62,10 @@ buildGoModule rec {
       Headscale implements this coordination server.
     '';
     license = licenses.bsd3;
-    maintainers = with maintainers; [ nkje jk kradalby ];
+    mainProgram = "headscale";
+    maintainers = with maintainers; [
+      kradalby
+      misterio77
+    ];
   };
 }

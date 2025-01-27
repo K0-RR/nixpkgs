@@ -1,50 +1,97 @@
-{ buildPythonPackage
-, fetchFromGitHub
-, jaxlib
-, keras
-, lib
-, matplotlib
-, msgpack
-, numpy
-, optax
-, pytestCheckHook
-, tensorflow
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  jaxlib,
+  setuptools-scm,
+
+  # dependencies
+  jax,
+  msgpack,
+  numpy,
+  optax,
+  orbax-checkpoint,
+  pyyaml,
+  rich,
+  tensorstore,
+  typing-extensions,
+
+  # checks
+  cloudpickle,
+  einops,
+  flaxlib,
+  keras,
+  pytestCheckHook,
+  pytest-xdist,
+  sphinx,
+  tensorflow,
+  treescope,
+
+  # optional-dependencies
+  matplotlib,
+
+  writeScript,
+  tomlq,
 }:
 
 buildPythonPackage rec {
   pname = "flax";
-  version = "0.4.0";
+  version = "0.10.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "google";
-    repo = pname;
-    rev = "v${version}";
-    sha256 = "0rvdaxyf68qmm5d77gbizpcibyz2ic2pb2x7rgf7p8qwijyc39ws";
+    repo = "flax";
+    tag = "v${version}";
+    hash = "sha256-+URbQGnmqmSNgucEyWvI5DMnzXjpmJzLA+Pho2lX+S4=";
   };
 
-  buildInputs = [ jaxlib ];
+  build-system = [
+    jaxlib
+    setuptools-scm
+  ];
 
-  propagatedBuildInputs = [
-    matplotlib
+  dependencies = [
+    jax
     msgpack
     numpy
     optax
+    orbax-checkpoint
+    pyyaml
+    rich
+    tensorstore
+    typing-extensions
   ];
 
-  pythonImportsCheck = [
-    "flax"
-  ];
+  optional-dependencies = {
+    all = [ matplotlib ];
+  };
 
-  checkInputs = [
+  pythonImportsCheck = [ "flax" ];
+
+  nativeCheckInputs = [
+    cloudpickle
+    einops
+    flaxlib
     keras
     pytestCheckHook
+    pytest-xdist
+    sphinx
     tensorflow
+    treescope
+  ];
+
+  pytestFlagsArray = [
+    "-W ignore::FutureWarning"
+    "-W ignore::DeprecationWarning"
   ];
 
   disabledTestPaths = [
     # Docs test, needs extra deps + we're not interested in it.
     "docs/_ext/codediff_test.py"
-
     # The tests in `examples` are not designed to be executed from a single test
     # session and thus either have the modules that conflict with each other or
     # wrong import paths, depending on how they're invoked. Many tests also have
@@ -52,12 +99,38 @@ buildPythonPackage rec {
     # `tensorflow_datasets`, `vocabulary`) so the benefits of trying to run them
     # would be limited anyway.
     "examples/*"
+    "flax/nnx/examples/*"
+    # See https://github.com/google/flax/issues/3232.
+    "tests/jax_utils_test.py"
   ];
 
-  meta = with lib; {
+  disabledTests =
+    [
+      # Failing with AssertionError since the jax update to 0.5.0
+      "test_basic_demo_single"
+      "test_batch_norm_multi_init"
+      "test_multimetric"
+      "test_split_merge"
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [
+      # SystemError: nanobind::detail::nb_func_error_except(): exception could not be translated!
+      "test_ref_changed"
+      "test_structure_changed"
+    ];
+
+  passthru = {
+    updateScript = writeScript "update.sh" ''
+      nix-update flax # does not --build by default
+      nix-build . -A flax.src # src is essentially a passthru
+      nix-update flaxlib --version="$(${lib.getExe tomlq} <result/Cargo.toml .something.version)" --commit
+    '';
+  };
+
+  meta = {
     description = "Neural network library for JAX";
     homepage = "https://github.com/google/flax";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ndl ];
+    changelog = "https://github.com/google/flax/releases/tag/v${version}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ ndl ];
   };
 }

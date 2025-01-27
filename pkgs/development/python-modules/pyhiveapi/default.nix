@@ -1,29 +1,30 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, unasync
-, boto3
-, botocore
-, requests
-, aiohttp
-, pyquery
-, loguru
+{
+  lib,
+  buildPythonPackage,
+  pythonOlder,
+  fetchFromGitHub,
+  setuptools,
+  unasync,
+  boto3,
+  botocore,
+  requests,
+  aiohttp,
+  pyquery,
+  loguru,
 }:
 
 buildPythonPackage rec {
   pname = "pyhiveapi";
-  version = "0.4.6";
-
-  format = "pyproject";
+  version = "1.0.1";
+  pyproject = true;
 
   disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "Pyhass";
     repo = "Pyhiveapi";
-    rev = "v${version}";
-    hash = "sha256-muUVZYBUloKRnAx7H8ry72eg85GzmnpTG8M/MfKcnGM=";
+    tag = "v${version}";
+    hash = "sha256-/Q6nQb6JyjjWJv7Yj+EJdqOMy+j3cYPIkRpXa3Q48Oo=";
   };
 
   postPatch = ''
@@ -32,6 +33,7 @@ buildPythonPackage rec {
   '';
 
   nativeBuildInputs = [
+    setuptools
     unasync
   ];
 
@@ -57,6 +59,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Python library to interface with the Hive API";
     homepage = "https://github.com/Pyhass/Pyhiveapi";
+    changelog = "https://github.com/Pyhass/Pyhiveapi/releases/tag/v${version}";
     license = licenses.mit;
     maintainers = with maintainers; [ dotlambda ];
   };

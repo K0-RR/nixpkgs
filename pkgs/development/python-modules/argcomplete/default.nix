@@ -1,38 +1,42 @@
-{ buildPythonPackage, fetchPypi, lib
-, dicttoxml
-, importlib-metadata
-, pexpect
-, prettytable
-, requests-toolbelt
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonOlder,
+  setuptools,
+  setuptools-scm,
 }:
+
 buildPythonPackage rec {
   pname = "argcomplete";
-  version = "1.12.3";
+  version = "3.5.2";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "2c7dbffd8c045ea534921e63b0be6fe65e88599990d8dc408ac8c542b72a5445";
+  disabled = pythonOlder "3.8";
+
+  src = fetchFromGitHub {
+    owner = "kislyuk";
+    repo = "argcomplete";
+    tag = "v${version}";
+    hash = "sha256-Tihb61LGTZ8tKrKKlxZ8scII2+pgzDHUkwVn54zlrug=";
   };
 
-  doCheck = false; # meant to be ran with interactive interpreter
-
-  # re-enable if we are able to make testing work
-  # checkInputs = [ bashInteractive coverage flake8 ];
-
-  propagatedBuildInputs = [
-    dicttoxml
-    importlib-metadata
-    pexpect
-    prettytable
-    requests-toolbelt
+  build-system = [
+    setuptools
+    setuptools-scm
   ];
+
+  # Tries to build and install test packages which fails
+  doCheck = false;
 
   pythonImportsCheck = [ "argcomplete" ];
 
   meta = with lib; {
     description = "Bash tab completion for argparse";
     homepage = "https://kislyuk.github.io/argcomplete/";
-    maintainers = [ maintainers.womfoo ];
-    license = [ licenses.asl20 ];
+    changelog = "https://github.com/kislyuk/argcomplete/blob/v${version}/Changes.rst";
+    downloadPage = "https://github.com/kislyuk/argcomplete";
+    license = licenses.asl20;
+    maintainers = with maintainers; [ womfoo ];
   };
 }

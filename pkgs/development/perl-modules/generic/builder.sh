@@ -1,5 +1,3 @@
-source $stdenv/setup
-
 PERL5LIB="$PERL5LIB${PERL5LIB:+:}$out/lib/perl5/site_perl"
 
 perlFlags=
@@ -22,7 +20,10 @@ preConfigure() {
         fi
     done
 
-    perl Makefile.PL PREFIX=$out INSTALLDIRS=site $makeMakerFlags PERL=$(type -P perl) FULLPERL=\"$fullperl/bin/perl\"
+    local flagsArray=()
+    concatTo flagsArray makeMakerFlags
+
+    perl Makefile.PL PREFIX=$out INSTALLDIRS=site "${flagsArray[@]}" PERL=$(type -P perl) FULLPERL=\"$fullperl/bin/perl\"
 }
 
 if test -n "$perlPreHook"; then
